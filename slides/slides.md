@@ -140,7 +140,18 @@ verticalSeparator: ^--$
 * Loading a Keras-trained TF model
 * Scoring a deep learning model directly from C# code
 
----
+--
+
+### A call to action
+
+* ML.NET has fantastic potential for us, .NET programmers
+* ML is all the rage, now we can incorporate it in our apps with very little friction
+* It's open-source - go contribute!
+    * The repo has _up-for-grabs_ and _good-first-issue_ tags
+    * The maintainers are friendly and open
+    * Every little bit helps - propose features, add documentation, implement stuff
+
+--
 
 ## Q&A
 #### (Ask me 3 or more questions)
