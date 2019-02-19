@@ -24,7 +24,7 @@ verticalSeparator: ^--$
 
 ----
 
-* https://twitter.com/mareklinka
+https://twitter.com/mareklinka
 
 ---
 
@@ -81,8 +81,8 @@ verticalSeparator: ^--$
 * Deep learning (training)
 * Distributed training
 * ARM/x86 support
-* Stable API
-* Stable and thorough documentation
+* __Stable API__
+* __Stable and thorough documentation__
 
 ---
 
@@ -130,7 +130,7 @@ verticalSeparator: ^--$
 
 #### DEMO
 ## Classifying disease
-#### (Using pre-trained TensorFlow model in ML.NET)
+#### (Using pre-trained TensorFlow model in c#)
 
 --
 
@@ -140,7 +140,7 @@ verticalSeparator: ^--$
 * Loading a Keras-trained TF model
 * Scoring a deep learning model directly from C# code
 
---
+---
 
 ### A call to action
 
@@ -164,3 +164,8 @@ verticalSeparator: ^--$
 * https://github.com/dotnet/machinelearning
 * https://www.kaggle.com/c/titanic
 * https://www.kaggle.com/iarunava/cell-images-for-detecting-malaria/kernels
+* https://www.coursera.org/specializations/deep-learning
+
+--
+
+# Thank you
