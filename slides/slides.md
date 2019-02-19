@@ -61,6 +61,7 @@ https://twitter.com/mareklinka
 * Supervised learning
 * Unsupervised learning
 * Model evaluation
+* Model explanation
 * Scoring of pre-trained models (Onnx, TensorFlow)
 
 --
