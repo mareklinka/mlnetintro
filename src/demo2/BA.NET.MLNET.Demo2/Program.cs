@@ -16,40 +16,55 @@ namespace BA.NET.MLNET.Demo2
             Console.Write("Image directory: ");
             var imagePath = Console.ReadLine();
 
-            var env = new MLContext(conc: 0);
+            var context = new MLContext();
 
-            var data = env.Data.ReadFromEnumerable(new List<InputModel>());
+            // this is necessary for calling Fit() later
+            var fakeData = context.Data.ReadFromEnumerable(new List<InputModel>());
 
-            var imageLoadingEstimator = new ImageLoadingEstimator(env, imagePath, ("ImageData", nameof(InputModel.Path)));
+            // loads images from disk
+            var imageLoadingEstimator = new ImageLoadingEstimator(
+                context, 
+                imagePath, 
+                ("ImageData", nameof(InputModel.Path)));
 
-            var imageResizingEstimator = new ImageResizingEstimator(env,
+            // resizes images to required size
+            var imageResizingEstimator = new ImageResizingEstimator(
+                context,
                 "ImageResized",
                 64,
                 64,
                 "ImageData",
                 ImageResizerTransformer.ResizingKind.IsoPad);
 
-            var imagePixelExtractingEstimator = new ImagePixelExtractingEstimator(env,
+            // transforms images to float vectors
+            var imagePixelExtractingEstimator = new ImagePixelExtractingEstimator(context,
                 new ImagePixelExtractorTransformer.ColumnInfo(
                     "input_1",
                     "ImageResized",
                     ImagePixelExtractorTransformer.ColorBits.Rgb, interleave: true,
                     scale: 1/255f));
 
-            var tensorFlowEstimator = new TensorFlowEstimator(env, new[] {"final_layer/Sigmoid"},
-                new[] {"input_1"}, "Model/MalariaModel.pb");
+            // loads the TF model from disk
+            var tensorFlowEstimator = new TensorFlowEstimator(
+                context, 
+                new[] {"final_layer/Sigmoid"},
+                new[] {"input_1"},
+                "Model/MalariaModel.pb");
 
+            // create a ML pipeline
             var pipeline = imageLoadingEstimator
                 .Append(imageResizingEstimator)
                 .Append(imagePixelExtractingEstimator)
                 .Append(tensorFlowEstimator);
 
-            var model = pipeline.Fit(data);
-            var predictor = model.CreatePredictionEngine<InputModel, OutputModel>(env);
+            // fit, otherwise we can't create a prediction engine
+            var model = pipeline.Fit(fakeData);
+
+            var predictor = model.CreatePredictionEngine<InputModel, OutputModel>(context);
 
             foreach (var file in Directory.GetFiles(imagePath, "*.png").Take(100).ToList())
             {
-                var (newName, _, _) = ImageUtilities.FlipRotateImage(file, 64, 64, imagePath);
+                var newName = ImageUtilities.ResizeImage(file, 64, 64, imagePath);
 
                 var prediction = predictor.Predict(new InputModel {Path = newName});
 

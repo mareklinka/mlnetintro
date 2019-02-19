@@ -14,6 +14,7 @@ namespace BA.Net.MLNET.Demo1
         static void Main(string[] args)
         {
             TrainModel();
+
             UseModel();
 
             Console.ReadLine();
@@ -23,50 +24,73 @@ namespace BA.Net.MLNET.Demo1
         {
             var context = new MLContext();
 
+            // load data from disk
             var trainingData =
                 context.Data.ReadFromTextFile<TrainingInputModel>("data\\train.csv", hasHeader: true, separatorChar: ',');
 
-            var pipeline = context.Transforms.DropColumns(nameof(TrainingInputModel.PassengerId),
+            // create a learning pipeline:
+            // drop unnecessary columns
+            // deal with missing values
+            // one-hot encode categorical columns
+            // concatenate feature columns into a vector
+            // add learner
+            // learn
+            var pipeline = context.Transforms.DropColumns(
+                    nameof(TrainingInputModel.PassengerId),
                     nameof(TrainingInputModel.Name),
-                    nameof(TrainingInputModel.Ticket), nameof(TrainingInputModel.Fare), nameof(TrainingInputModel.Cabin))
-                .Append(context.Transforms.ReplaceMissingValues(nameof(TrainingInputModel.Age), nameof(TrainingInputModel.Age),
+                    nameof(TrainingInputModel.Ticket), 
+                    nameof(TrainingInputModel.Fare), 
+                    nameof(TrainingInputModel.Cabin))
+                .Append(context.Transforms.ReplaceMissingValues(
+                    nameof(TrainingInputModel.Age), 
+                    nameof(TrainingInputModel.Age),
                     MissingValueReplacingTransformer.ColumnInfo.ReplacementMode.Mean))
-                .Append(context.Transforms.Categorical.OneHotEncoding(nameof(TrainingInputModel.Gender),
+                .Append(context.Transforms.Categorical.OneHotEncoding(
+                    nameof(TrainingInputModel.Gender),
                     nameof(TrainingInputModel.Gender)))
-                .Append(context.Transforms.Categorical.OneHotEncoding(nameof(TrainingInputModel.Embarked),
+                .Append(context.Transforms.Categorical.OneHotEncoding(
+                    nameof(TrainingInputModel.Embarked),
                     nameof(TrainingInputModel.Embarked)))
-                .Append(context.Transforms.Categorical.OneHotEncoding(nameof(TrainingInputModel.PassengerClass),
+                .Append(context.Transforms.Categorical.OneHotEncoding(
+                    nameof(TrainingInputModel.PassengerClass),
                     nameof(TrainingInputModel.PassengerClass)))
-                .Append(context.Transforms.Concatenate("Features", nameof(TrainingInputModel.PassengerClass),
-                    nameof(TrainingInputModel.Gender), nameof(TrainingInputModel.Age),
+                .Append(context.Transforms.Concatenate("Features", 
+                    nameof(TrainingInputModel.PassengerClass),
+                    nameof(TrainingInputModel.Gender), 
+                    nameof(TrainingInputModel.Age),
                     nameof(TrainingInputModel.SiblingsOrSpouses),
-                    nameof(TrainingInputModel.ParentsOrChildren), nameof(TrainingInputModel.Embarked)))
+                    nameof(TrainingInputModel.ParentsOrChildren), 
+                    nameof(TrainingInputModel.Embarked)))
                 .Append(context.BinaryClassification.Trainers.LogisticRegression(nameof(TrainingInputModel.Survived)))
                 .Fit(trainingData);
 
-            EvaluateModel(context, pipeline, trainingData);
+            EvaluateModel(context, pipeline);
 
             Console.WriteLine();
 
-            PredictTestData(pipeline, context);
+            PredictTestData(context, pipeline);
 
             Console.WriteLine();
 
-            SaveModel(pipeline, context);
+            SaveModel(context, pipeline);
         }
 
-        private static void EvaluateModel(MLContext context, ITransformer pipeline, IDataView trainingData)
+        private static void EvaluateModel(MLContext context, ITransformer pipeline)
         {
+            var trainingData =
+                context.Data.ReadFromTextFile<TrainingInputModel>("data\\train.csv", hasHeader: true, separatorChar: ',');
+
+            // evaluate on training data
             var statistics =
                 context.BinaryClassification.EvaluateNonCalibrated(pipeline.Transform(trainingData),
                     nameof(OutputModel.Survived));
 
             Console.WriteLine("Training performance:");
-            Console.WriteLine($"Accuracy: {statistics.Accuracy}");
-            Console.WriteLine($"F1: {statistics.F1Score}");
+            Console.WriteLine($"\tAccuracy: {statistics.Accuracy}");
+            Console.WriteLine($"\tF1: {statistics.F1Score}");
         }
 
-        private static void PredictTestData(ITransformer pipeline, MLContext context)
+        private static void PredictTestData(MLContext context, ITransformer pipeline)
         {
             var predictor = pipeline.CreatePredictionEngine<PredictionInputModel, OutputModel>(context);
 
@@ -75,28 +99,29 @@ namespace BA.Net.MLNET.Demo1
 
             foreach (var row in evalData.Preview().RowView)
             {
-                var predictionInputModel = new PredictionInputModel
+                var inputModel = new PredictionInputModel
                 {
-                    Embarked = (row.Values[10].Value.ToString()),
-                    PassengerClass = ((float)row.Values[1].Value),
-                    Gender = (row.Values[3].Value.ToString()),
-                    Age = ((float)row.Values[4].Value),
-                    ParentsOrChildren = ((float)row.Values[6].Value),
-                    SiblingsOrSpouses = ((float)row.Values[5].Value),
-                    Cabin = (row.Values[9].Value.ToString()),
-                    Name = (row.Values[2].Value.ToString()),
-                    Fare = ((double)row.Values[8].Value),
-                    Ticket = (row.Values[7].Value.ToString()),
-                    PassengerId = ((int)row.Values[0].Value)
+                    Embarked = row.Values[10].Value.ToString(),
+                    PassengerClass = (float)row.Values[1].Value,
+                    Gender = row.Values[3].Value.ToString(),
+                    Age = (float)row.Values[4].Value,
+                    ParentsOrChildren = (float)row.Values[6].Value,
+                    SiblingsOrSpouses = (float)row.Values[5].Value,
+                    Cabin = row.Values[9].Value.ToString(),
+                    Name = row.Values[2].Value.ToString(),
+                    Fare = (double)row.Values[8].Value,
+                    Ticket = row.Values[7].Value.ToString(),
+                    PassengerId = (int)row.Values[0].Value
                 };
-                var prediction = predictor.Predict(predictionInputModel);
+
+                var prediction = predictor.Predict(inputModel);
 
                 Console.WriteLine(
-                    $"{predictionInputModel.Name}: {(prediction.Survived ? "Alive" : "Deceased")} ({prediction.Probability:P2})");
+                    $"{inputModel.Name}: {(prediction.Survived ? "Alive" : "Deceased")} ({prediction.Probability:P2})");
             }
         }
 
-        private static void SaveModel(ITransformer pipeline, MLContext context)
+        private static void SaveModel(MLContext context, ITransformer pipeline)
         {
             Console.WriteLine("Saving the model to model.bin...");
             using (var modelFileStream = new FileStream("model.bin", FileMode.Create, FileAccess.Write))
@@ -105,26 +130,24 @@ namespace BA.Net.MLNET.Demo1
             }
         }
 
-        private static (ITransformer, MLContext) LoadModel()
+        private static (MLContext, ITransformer) LoadModel()
         {
             Console.WriteLine("Loading the model from model.bin...");
             var context = new MLContext();
 
-            ITransformer loadedModel;
             using (var modelFileStream = new FileStream("model.bin", FileMode.Open, FileAccess.Read))
             {
-                loadedModel = context.Model.Load(modelFileStream);
+                return (context, context.Model.Load(modelFileStream));
             }
-            return (loadedModel, context);
         }
 
         private static void UseModel()
         {
-            var (predictor, context) = LoadModel();
+            var (context, predictor) = LoadModel();
 
             Console.WriteLine();
 
-            PredictTestData(predictor, context);
+            PredictTestData(context, predictor);
         }
     }
 }
