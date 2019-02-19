@@ -41,7 +41,7 @@ namespace BA.Net.MLNET.Demo1
                     nameof(TrainingInputModel.Gender), nameof(TrainingInputModel.Age),
                     nameof(TrainingInputModel.SiblingsOrSpouses),
                     nameof(TrainingInputModel.ParentsOrChildren), nameof(TrainingInputModel.Embarked)))
-                .Append(context.BinaryClassification.Trainers.FastTree(nameof(TrainingInputModel.Survived)))
+                .Append(context.BinaryClassification.Trainers.LogisticRegression(nameof(TrainingInputModel.Survived)))
                 .Fit(trainingData);
 
             EvaluateModel(context, pipeline, trainingData);
@@ -55,12 +55,13 @@ namespace BA.Net.MLNET.Demo1
             SaveModel(pipeline, context);
         }
 
-        private static void EvaluateModel(MLContext context, TransformerChain<BinaryPredictionTransformer<IPredictorWithFeatureWeights<float>>> pipeline, IDataView trainingData)
+        private static void EvaluateModel(MLContext context, ITransformer pipeline, IDataView trainingData)
         {
             var statistics =
                 context.BinaryClassification.EvaluateNonCalibrated(pipeline.Transform(trainingData),
                     nameof(OutputModel.Survived));
 
+            Console.WriteLine("Training performance:");
             Console.WriteLine($"Accuracy: {statistics.Accuracy}");
             Console.WriteLine($"F1: {statistics.F1Score}");
         }
@@ -95,7 +96,7 @@ namespace BA.Net.MLNET.Demo1
             }
         }
 
-        private static void SaveModel(TransformerChain<BinaryPredictionTransformer<IPredictorWithFeatureWeights<float>>> pipeline, MLContext context)
+        private static void SaveModel(ITransformer pipeline, MLContext context)
         {
             Console.WriteLine("Saving the model to model.bin...");
             using (var modelFileStream = new FileStream("model.bin", FileMode.Create, FileAccess.Write))
